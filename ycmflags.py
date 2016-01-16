@@ -36,7 +36,7 @@ class YcmFlags:
                     probable_source = os.path.join(sub_folder, source_file_name)
                     if os.path.exists(probable_source):
                         return (probable_source, ["-x", lang])
-        # 3. Give up
+        # 2. Give up
         return (filename, [])
 
     @staticmethod
