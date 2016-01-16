@@ -4,10 +4,13 @@ from clang_helpers import PrepareClangFlags
 
 
 class YcmFlags:
-    def __init__(self, flags = [], additional_includes = []):
+    def __init__(self, flags = [], additional_includes = [], default_file = []):
         self._flags = flags
         self._project_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
         self._compilation_database_folder = os.path.join(self._project_path, 'build/')
+        self._default_file = None
+        if default_file:
+            self._default_file = default_file
         if self._compilation_database_folder:
             self._database = ycm_core.CompilationDatabase(self._compilation_database_folder)
             if not self._database:
@@ -68,6 +71,11 @@ class YcmFlags:
     def flags_for_file(self, original_filename):
         (filename, extra_flags) = YcmFlags.find_source_for_header(original_filename)
         compilation_info = self._database.GetCompilationInfoForFile(filename)
+        if not compilation_info.compiler_flags_:
+            if not self._default_file:
+                raise NameError("No flags extracted")
+            compilation_info = self._database.GetCompilationInfoForFile(
+                    os.path.join(self._project_path, self._default_file))
         flags = PrepareClangFlags(
             self.relative_to_absolute(
                 compilation_info.compiler_flags_,

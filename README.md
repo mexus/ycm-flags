@@ -53,6 +53,8 @@ As you can see at [`ycmflags.py`](ycmflags.py), the constructor accepts the foll
 1. `additional_includes`. This option is for any additional include paths you want,
 it is also a `list`: `["/usr/include/curl", "some-weird-stuff/headers"]`. Keep in mind that relative pathes are
 resolved relatively to the project's root.
+1. `default_file`. If provided, this file will be used to get compilation flags for any file that is not in a compilation database.
+It should be specified as a path relative to the project's root: `"source/main.cpp"`.
 
 ##Header files
 The main idea behind deducing compilation flags for a header file is to find a corresponding source file.
