@@ -18,6 +18,28 @@ class YcmFlags:
             self._flags.extend(['-I', include])
 
     @staticmethod
+    def find_source_for_header(filename):
+        (base_folder, name) = os.path.split(filename)
+        (base_name, extension) = os.path.splitext(name)
+        # 0. Check if the file is a header:
+        if extension not in {".h", ".hpp"}:
+            return (filename, [])
+        extensions = [["c++", ".cpp"], ["c++", ".cxx"], ["c", ".c"]]
+        for pair in extensions:
+            lang = pair[0]
+            source_extension = pair[1]
+            source_file_name = base_name + source_extension
+            # 1. Look in the same folder and subfolders
+            for subfolder_name in {"", "src", "source"}:
+                sub_folder = os.path.join(base_folder, subfolder_name)
+                if os.path.exists(sub_folder) and os.path.isdir(sub_folder):
+                    probable_source = os.path.join(sub_folder, source_file_name)
+                    if os.path.exists(probable_source):
+                        return (probable_source, ["-x", lang])
+        # 3. Give up
+        return (filename, [])
+
+    @staticmethod
     def relative_to_absolute(flags, absolute_path):
         new_flags = []
         path_flags = ['-isystem', '-I', '-iquote', '--sysroot=']
@@ -43,7 +65,8 @@ class YcmFlags:
             new_flags.append(new_flag)
         return new_flags
 
-    def flags_for_file(self, filename):
+    def flags_for_file(self, original_filename):
+        (filename, extra_flags) = YcmFlags.find_source_for_header(original_filename)
         compilation_info = self._database.GetCompilationInfoForFile(filename)
         flags = PrepareClangFlags(
             self.relative_to_absolute(
@@ -53,6 +76,6 @@ class YcmFlags:
         additional_flags = self.relative_to_absolute(self._flags, self._project_path)
         flags.extend(additional_flags)
         return {
-            'flags': flags,
+            'flags': flags + extra_flags,
             'do_cache': True
         }
