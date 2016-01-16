@@ -11,23 +11,23 @@ This tool utilize a [YCM][YCM]'s ability to read a "compilation database", namel
 and the tool tries its best to deduce the correct compilation flags for any header file in your project.
 
 If the header stuff doesn't work for you, please take a look at the
-[Compilation flags for header files](#header-files) section.
+[Header files](#header-files) section.
 
 ##How to use
 First of all, you have to make sure that path to `compile_commands.json` is resolved correctly.
 The tool relies on two facts:
 
 1. You will put it in the `%YOUR-REPO%/ycm` directory.
-1. The `compile_commands.json` files resides in the `%YOUR-REPO%/build` directory.
-If it is not the case, please ammend `_project_path` and `_compilation_database_folder` variables correspondingly
+1. The `compile_commands.json` file resides in the `%YOUR-REPO%/build` directory.
+If it is not the case, please amend `_project_path` and `_compilation_database_folder` variables correspondingly
 in the constructor of the `YcmFlags` class in the file [`ycmflags.py`](ycmflags.py).
 
 By default the `_project_path` is calculated as the `ycmflags.py`'s path + `/../`,
 and the `_compilation_database_folder` is the project path + `/build/`.
 
-1. Create `ycm` directory in the root of your repository
-1. Put [`__init__.py`](__init__.py) and [`ycmflags.py`](ycmflags.py) there
-1. In a directory where you want an autocompletion to work (it may be also the repository root),
+1. Create `ycm` directory in the root of your project.
+1. Put [`__init__.py`](__init__.py) and [`ycmflags.py`](ycmflags.py) there.
+1. In a directory where you want an autocompletion to work (it may be also the project's root),
 put `.ycm_extra_conf.py` file with the following contents:
 
 ```python
@@ -48,18 +48,28 @@ Actually you can name it whatever you like, `ycm` is just an example.
 
 ##Tuning
 As you can see at [`ycmflags.py`](ycmflags.py), the constructor accepts the following options:
+
 1. `flags`. If you want to pass any additional flags, here you go, pass them as a `list`: `["-xc++", "-Werror"]`.
 1. `additional_includes`. This option is for any additional include paths you want,
 it is also a `list`: `["/usr/include/curl", "some-weird-stuff/headers"]`. Keep in mind that relative pathes are
-resolved to the project's root.
+resolved relatively to the project's root.
 
 ##Header files
 The main idea behind deducing compilation flags for a header file is to find a corresponding source file.
 If the file is found, then its flags are used (via the "compilation database").
 
-You can take a look at the algorythm in the static method `find_source_for_header`:
+You can take a look at the algorithm in the static method `find_source_for_header`:
 it tries to locate a source file with the same name in the same path and in some subfolders (namely `source` and `src`).
 
-If it doesn't work for you, please feel free to ammend it the way you like. Feedback is appreciated!
+For example, if you have a file `/project/clang.h`, the tool will try to look for the following files:
+
+- `/project/clang.cpp`
+- `/project/clang.c`
+- `/project/src/clang.cpp`
+- `/project/src/clang.c`
+- `/project/source/clang.cpp`
+- `/project/source/clang.c`
+
+If it doesn't work for you, please feel free to amend it the way you like. Feedback is appreciated!
 
 [YCM]: https://github.com/Valloric/YouCompleteMe
