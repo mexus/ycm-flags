@@ -4,6 +4,7 @@ from clang_helpers import PrepareClangFlags
 
 
 class YcmFlags:
+    # See `README.md` for information about options
     def __init__(self, flags = [], additional_includes = [], default_file = []):
         self._flags = flags
         self._project_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
@@ -68,20 +69,27 @@ class YcmFlags:
             new_flags.append(new_flag)
         return new_flags
 
+    def flags_for_default_file(self):
+        if not self._default_file:
+            raise NameError("No default flag set, so no flags extracted")
+        default_file_name = self._default_file[0]
+        default_file_flags = self._default_file[1]
+        compilation_info = self._database.GetCompilationInfoForFile(
+                os.path.join(self._project_path, default_file_name))
+        return (compilation_info, self.relative_to_absolute(default_file_flags, self._project_path))
+
     def flags_for_file(self, original_filename):
         (filename, extra_flags) = YcmFlags.find_source_for_header(original_filename)
         compilation_info = self._database.GetCompilationInfoForFile(filename)
+        additional_flags = []
         if not compilation_info.compiler_flags_:
-            if not self._default_file:
-                raise NameError("No flags extracted")
-            compilation_info = self._database.GetCompilationInfoForFile(
-                    os.path.join(self._project_path, self._default_file))
+            (compilation_info, additional_flags) = self.flags_for_default_file()
         flags = PrepareClangFlags(
             self.relative_to_absolute(
                 compilation_info.compiler_flags_,
                 compilation_info.compiler_working_dir_),
             filename)
-        additional_flags = self.relative_to_absolute(self._flags, self._project_path)
+        additional_flags += self.relative_to_absolute(self._flags, self._project_path)
         flags.extend(additional_flags)
         return {
             'flags': flags + extra_flags,
