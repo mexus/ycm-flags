@@ -34,7 +34,7 @@ class YcmFlags:
             source_extension = pair[1]
             source_file_name = base_name + source_extension
             # 1. Look in the same folder and subfolders
-            for subfolder_name in {"", "src", "source"}:
+            for subfolder_name in {"", "src", "source", "sources"}:
                 sub_folder = os.path.join(base_folder, subfolder_name)
                 if os.path.exists(sub_folder) and os.path.isdir(sub_folder):
                     probable_source = os.path.join(sub_folder, source_file_name)
