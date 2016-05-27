@@ -51,17 +51,19 @@ def find_source_for_header(header):
 class YcmFlags:
     """Flags generator for YouCompleteMe vim plugin"""
 
-    def __init__(self, flags=None, additional_includes=None,
-                 default_file=None):
+    def __init__(self, absolute_project_path=None, flags=None,
+                 additional_includes=None, default_file=None, build_path="build/"):
         """See `README.md` for information about options"""
+        if absolute_project_path is None:
+            raise NameError('Please set up the `absolute_project_path` argument.')
         self._flags = flags if flags is not None else []
         self._default_file = default_file if default_file is not None else ()
         if isinstance(additional_includes, (tuple, list)):
             self._flags.extend(
                 [["-I", include] for include in additional_includes])
 
-        self._project_path = os.getcwd()
-        self._compilation_db_path = os.path.join(self._project_path, 'build/')
+        self._project_path = os.path.abspath(absolute_project_path)
+        self._compilation_db_path = os.path.join(self._project_path, build_path)
         if os.path.exists(self._compilation_db_path):
             self._db = ycm_core.CompilationDatabase(self._compilation_db_path)
             if not self._db:
