@@ -19,11 +19,11 @@ The tool relies on two facts:
 
 1. You will put it in the `%YOUR-REPO%/ycm` directory.
 1. The `compile_commands.json` file resides in the `%YOUR-REPO%/build` directory.
-If it is not the case, please amend `_project_path` and `_compilation_database_folder` variables correspondingly
+If it is not the case, please amend `_project_path` and `_compilation_db_path` variables correspondingly
 in the constructor of the `YcmFlags` class in the file [`ycmflags.py`](ycmflags.py).
 
 By default the `_project_path` is calculated as the `ycmflags.py`'s path + `/../`,
-and the `_compilation_database_folder` is the project path + `/build/`.
+and the `_compilation_db_path` is the project path + `/build/`.
 
 1. Create `ycm` directory in the root of your project.
 1. Put [`__init__.py`](__init__.py) and [`ycmflags.py`](ycmflags.py) there.
@@ -38,7 +38,7 @@ sys.path.insert(0, os.path.normpath(os.path.join(here, '%PATH-TO-YCM-DIR%')))
 
 import ycmflags
 
-def FlagsForFile( filename ):
+def FlagsForFile(filename):
     flags = ycmflags.YcmFlags()
     return flags.flags_for_file(filename)
 
