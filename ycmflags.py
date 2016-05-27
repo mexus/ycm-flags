@@ -1,52 +1,77 @@
+# -*- coding: utf-8 -*-
+
 import os
+
 import ycm_core
 from clang_helpers import PrepareClangFlags
 
 
+SOURCE_EXTENSIONS = {
+    "c++": (
+        ".cpp",
+        ".cxx"
+    ),
+    "c": (
+        ".c",
+    )
+}
+
+PATH_FLAGS = (
+    '-isystem',
+    '-I',
+    '-iquote',
+    '--sysroot='
+)
+
+
+def find_file(root, filename):
+    for root, _, files in os.walk(root):
+        for f in files:
+            if filename == f:
+                return os.path.join(root, f)
+
+
+def find_source_for_header(header):
+    header_folder, header_name = os.path.split(header)
+    base_name, header_ext = os.path.splitext(header_name)
+
+    if header_ext not in (".h", ".hpp"):
+        return header, []
+
+    for lang in SOURCE_EXTENSIONS:
+        for source_ext in SOURCE_EXTENSIONS[lang]:
+            source_name = base_name + source_ext
+            source = find_file(header_folder, source_name)
+            if source is not None:
+                return source, ["-x", lang]
+
+    return header, []
+
+
 class YcmFlags:
-    # See `README.md` for information about options
-    def __init__(self, flags = [], additional_includes = [], default_file = []):
-        self._flags = flags
-        self._project_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-        self._compilation_database_folder = os.path.join(self._project_path, 'build/')
-        self._default_file = None
-        if default_file:
-            self._default_file = default_file
-        if self._compilation_database_folder:
-            self._database = ycm_core.CompilationDatabase(self._compilation_database_folder)
-            if not self._database:
+    """Flags generator for YouCompleteMe vim plugin"""
+
+    def __init__(self, flags=None, additional_includes=None,
+                 default_file=None):
+        """See `README.md` for information about options"""
+        self._flags = flags if flags is not None else []
+        self._default_file = default_file if default_file is not None else ()
+        if isinstance(additional_includes, (tuple, list)):
+            self._flags.extend(
+                [["-I", include] for include in additional_includes])
+
+        self._project_path = os.getcwd()
+        self._compilation_db_path = os.path.join(self._project_path, 'build/')
+        if os.path.exists(self._compilation_db_path):
+            self._db = ycm_core.CompilationDatabase(self._compilation_db_path)
+            if not self._db:
                 raise NameError('Failed to prepare a compilation DB')
         else:
             raise NameError('No compilation DB!')
-        for include in additional_includes:
-            self._flags.extend(['-I', include])
-
-    @staticmethod
-    def find_source_for_header(filename):
-        (base_folder, name) = os.path.split(filename)
-        (base_name, extension) = os.path.splitext(name)
-        # 0. Check if the file is a header:
-        if extension not in {".h", ".hpp"}:
-            return (filename, [])
-        extensions = [["c++", ".cpp"], ["c++", ".cxx"], ["c", ".c"]]
-        for pair in extensions:
-            lang = pair[0]
-            source_extension = pair[1]
-            source_file_name = base_name + source_extension
-            # 1. Look in the same folder and subfolders
-            for subfolder_name in {"", "src", "source", "sources"}:
-                sub_folder = os.path.join(base_folder, subfolder_name)
-                if os.path.exists(sub_folder) and os.path.isdir(sub_folder):
-                    probable_source = os.path.join(sub_folder, source_file_name)
-                    if os.path.exists(probable_source):
-                        return (probable_source, ["-x", lang])
-        # 2. Give up
-        return (filename, [])
 
     @staticmethod
     def relative_to_absolute(flags, absolute_path):
         new_flags = []
-        path_flags = ['-isystem', '-I', '-iquote', '--sysroot=']
         make_next_absolute = False
         for flag in flags:
             if make_next_absolute:
@@ -58,13 +83,14 @@ class YcmFlags:
                 new_flags.append(os.path.normpath(new_flag))
                 continue
             new_flag = flag
-            for path_flag in path_flags:
+            for path_flag in PATH_FLAGS:
                 if flag == path_flag:
                     make_next_absolute = True
                     break
                 if flag.startswith(path_flag):
                     path = flag[len(path_flag):]
-                    new_flag = path_flag + os.path.normpath(os.path.join(absolute_path, path))
+                    new_flag = path_flag + os.path.normpath(
+                        os.path.join(absolute_path, path))
                     break
             new_flags.append(new_flag)
         return new_flags
@@ -72,26 +98,34 @@ class YcmFlags:
     def flags_for_default_file(self):
         if not self._default_file:
             raise NameError("No default flag set, so no flags extracted")
-        default_file_name = self._default_file[0]
-        default_file_flags = self._default_file[1]
-        compilation_info = self._database.GetCompilationInfoForFile(
-                os.path.join(self._project_path, default_file_name))
-        return (compilation_info, self.relative_to_absolute(default_file_flags, self._project_path))
 
-    def flags_for_file(self, original_filename):
-        (filename, extra_flags) = YcmFlags.find_source_for_header(original_filename)
-        compilation_info = self._database.GetCompilationInfoForFile(filename)
+        source, flags = self._default_file
+        compilation_info = self._db.GetCompilationInfoForFile(
+            os.path.join(self._project_path, source))
+
+        return (
+            compilation_info,
+            self.relative_to_absolute(flags, self._project_path)
+        )
+
+    def flags_for_file(self, filename):
         additional_flags = []
+        source, extra_flags = find_source_for_header(filename)
+
+        compilation_info = self._db.GetCompilationInfoForFile(source)
         if not compilation_info.compiler_flags_:
-            (compilation_info, additional_flags) = self.flags_for_default_file()
+            compilation_info, additional_flags = self.flags_for_default_file()
+
+        additional_flags.extend(
+            self.relative_to_absolute(self._flags, self._project_path))
+
         flags = PrepareClangFlags(
             self.relative_to_absolute(
                 compilation_info.compiler_flags_,
                 compilation_info.compiler_working_dir_),
-            filename)
-        additional_flags += self.relative_to_absolute(self._flags, self._project_path)
-        flags.extend(additional_flags)
+            source)
+
         return {
-            'flags': flags + extra_flags,
+            'flags': flags + additional_flags + extra_flags,
             'do_cache': True
         }
